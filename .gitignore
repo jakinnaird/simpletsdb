@@ -1,0 +1,9 @@
+package/bin/*
+package/*.exe
+msw/obj
+msw/lib
+msw/*.bin
+*.user
+*.suo
+*.filters
+**/.vs
