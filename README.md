@@ -40,7 +40,7 @@ The data and log files are untouched.
 Writing data using the telnet interface is simple. A single line is a single data point.
 
 The format is as follows:
-> put `<metric name>` `<timestamp>` `<value>` `<[tagk=value,...>`
+> put `<metric name>` `<timestamp>` `<value>` `<[tagk=value [tagk=value2]...]>`
 
 List of parameters:
 
@@ -106,7 +106,7 @@ Relative example:
 
 Currently, the following relative markers are supported:
 
-| Marker | Description | Example |
+| Unit | Description | Example |
 | ------ | ----------- | ------- |
 | s | Seconds | 30s-ago |
 | m | Minutes | 15m-ago |
@@ -158,9 +158,7 @@ Examples:
 # Performance
 Under Windows 10 Pro with an i5 processor, 8GB of RAM, and an SSD drive, metric write throughput can handle 1500+ writes/second, while the put throughput easily exceeds 2000+ metrics/second.
 
-Statistics can be retrieved from the HTTP interface at 
-
-> http://<bind_address>:<http_port>/api/stats
+Statistics can be retrieved from the HTTP interface at `/api/stats` 
 
 The HTTP response refreshes every 5 seconds.
 
