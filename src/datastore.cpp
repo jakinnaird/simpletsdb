@@ -25,6 +25,8 @@
 #define SQL_CREATE_TABLE_METRIC	\
 	"CREATE TABLE METRIC (TIMESTAMP INTEGER NOT NULL, " \
 	"VALUE NUMBER NOT NULL, TAGS TEXT NOT NULL);"
+#define SQL_CREATE_INDEX_METRIC_TAGS	\
+	"CREATE INDEX IDX_METRIC_TAGS ON METRIC(TAGS);"
 #define SQL_VERIFY_TABLE \
 	"SELECT COUNT(name) FROM sqlite_master WHERE TYPE='table' AND NAME=?001;"
 #define SQL_ENABLE_WAL \
@@ -62,8 +64,8 @@ void Datastore::StopThread(void)
 
 void Datastore::QueueMetric(const Metric &m)
 {
-	m_MetricQueue.enqueue(m);
-	m_QueueSize += 1;
+	if (m_MetricQueue.enqueue(m))
+		m_QueueSize.fetch_add(1, std::memory_order_release);
 }
 
 bool Datastore::CacheDatabase(const std::string &name, const std::string &path)
@@ -81,7 +83,7 @@ bool Datastore::CacheDatabase(const std::string &name, const std::string &path)
 
 	// try to open the database
 	int result = sqlite3_open_v2(path.c_str(), &conn->db, 
-		SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, nullptr);
+		SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX, nullptr);
 	if (result != SQLITE_OK)
 	{
 		spdlog::warn(sqlite3_errstr(result));
@@ -127,19 +129,6 @@ bool Datastore::CacheDatabase(const std::string &name, const std::string &path)
 
 	sqlite3_finalize(stmt);
 
-	// enable Write-Ahead-Logging
-	char *error = nullptr;
-	result = sqlite3_exec(conn->db, SQL_ENABLE_WAL, nullptr,
-		nullptr, &error);
-	if (result != SQLITE_OK)
-	{
-		spdlog::warn(error);
-		sqlite3_free(error);
-		sqlite3_close_v2(conn->db);
-		delete conn;
-		return false;
-	}
-
 	// create the prepared statements
 	result = sqlite3_prepare_v2(conn->db, SQL_INSERT_METRIC, -1,
 		&conn->insert, nullptr);
@@ -174,7 +163,7 @@ Datastore::dbconn* Datastore::CreateDatabase(const std::string &name)
 	path.append(m_DbExt);
 
 	int result = sqlite3_open_v2(path.c_str(), &conn->db,
-		SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE|SQLITE_OPEN_NOMUTEX, nullptr);
+		SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE|SQLITE_OPEN_FULLMUTEX, nullptr);
 	if (result != SQLITE_OK)
 	{
 		spdlog::warn(sqlite3_errstr(result));
@@ -185,6 +174,17 @@ Datastore::dbconn* Datastore::CreateDatabase(const std::string &name)
 	// create the schema
 	char *error = nullptr;
 	result = sqlite3_exec(conn->db, SQL_CREATE_TABLE_METRIC, nullptr,
+		nullptr, &error);
+	if (result != SQLITE_OK)
+	{
+		spdlog::warn(error);
+		sqlite3_free(error);
+		sqlite3_close_v2(conn->db);
+		delete conn;
+		return nullptr;
+	}
+
+	result = sqlite3_exec(conn->db, SQL_CREATE_INDEX_METRIC_TAGS, nullptr,
 		nullptr, &error);
 	if (result != SQLITE_OK)
 	{
@@ -235,6 +235,30 @@ void Datastore::WriteMetric(dbconn *conn, const Metric &metric)
 	}
 
 	sqlite3_reset(conn->insert);
+}
+
+ResultSet* Datastore::PrepareQuery(const Query &query)
+{
+	// find the metric
+	datastore_t::iterator metric = m_Store.find(query.GetMetric());
+	if (metric == m_Store.end())
+		return nullptr;	// we don't know that metric
+
+	sqlite3_stmt *stmt = nullptr;
+
+	int result = sqlite3_prepare_v2(metric->second->db, 
+		query.GetQuery().c_str(), -1, &stmt, nullptr);
+	if (result != SQLITE_OK)
+	{
+		spdlog::warn(sqlite3_errstr(result));
+		return nullptr;
+	}
+
+	ResultSet *rs = new ResultSet(stmt);
+	if (rs == nullptr)
+		sqlite3_finalize(stmt);
+
+	return rs;
 }
 
 void Datastore::Start(void)
@@ -348,9 +372,6 @@ void Datastore::Process(void)
 	
 	m_Stats->SetQueueBacklog(m_QueueSize);
 
-	if (m_QueueSize == 0)
-		this->Sleep(50);	// wait for the queue to fill back up
-
 	// try to dequeue some metrics
 	Metric m[BULK_COUNT];
 	std::size_t count = 0;
@@ -372,10 +393,11 @@ void Datastore::Process(void)
 					WriteMetric(conn, m[i]);
 				}
 			}
+
+			m_QueueSize.fetch_sub(1, std::memory_order_consume);
 		}
 
 		m_Stats->AddWriteCount(count);
-		m_QueueSize -= count;
 	}
 
 	// write the internal statistics to the datastore if they are updated
@@ -401,6 +423,9 @@ void Datastore::Process(void)
 		Metric qbl(name, timestamp, stats.queueBacklog, tags);
 		QueueMetric(qbl);
 	}
+
+	if (count == 0)
+		this->Sleep(50);	// wait for the queue to fill back up
 }
 
 void Datastore::Stop(void)

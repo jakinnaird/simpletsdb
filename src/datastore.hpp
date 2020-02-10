@@ -12,6 +12,8 @@
 #include <string>
 
 #include "metric.hpp"
+#include "query.hpp"
+#include "resultset.hpp"
 #include "stats.hpp"
 #include "thread.hpp"
 
@@ -52,6 +54,7 @@ public:
 	void StopThread(void);
 
 	void QueueMetric(const Metric &metric);
+	ResultSet* PrepareQuery(const Query &query);
 
 private:
 	bool CacheDatabase(const std::string &name, const std::string &path);

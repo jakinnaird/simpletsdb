@@ -16657,9 +16657,9 @@ get_uri_type(const char *uri)
 			case '\\': /* 92 */
 			case '^':  /* 94 */
 			case '`':  /* 96 */
-			case '{':  /* 123 */
-			case '|':  /* 124 */
-			case '}':  /* 125 */
+//			case '{':  /* 123 */
+//			case '|':  /* 124 */
+//			case '}':  /* 125 */
 				return 0;
 			default:
 				/* character is ok */

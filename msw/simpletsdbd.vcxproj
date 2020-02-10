@@ -53,7 +53,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\thirdparty\tclap\include;..\thirdparty\benhoyt\inih;..\thirdparty\benhoyt\inih\cpp;..\thirdparty\gabime\spdlog\include;..\thirdparty\giovannidicanio;..\thirdparty\civetweb\civetweb;..\thirdparty\sqlite;..\thirdparty\moodycamel;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\thirdparty\tclap\include;..\thirdparty\benhoyt\inih;..\thirdparty\benhoyt\inih\cpp;..\thirdparty\gabime\spdlog\include;..\thirdparty\giovannidicanio;..\thirdparty\civetweb\civetweb;..\thirdparty\sqlite;..\thirdparty\moodycamel;..\thirdparty\six-ddc;</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <PreprocessorDefinitions>_UNICODE;UNICODE;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -83,8 +83,11 @@
     <ClCompile Include="..\src\kernel.cpp" />
     <ClCompile Include="..\src\metric.cpp" />
     <ClCompile Include="..\src\network.cpp" />
+    <ClCompile Include="..\src\query.cpp" />
+    <ClCompile Include="..\src\resultset.cpp" />
     <ClCompile Include="..\src\stats.cpp" />
     <ClCompile Include="..\src\thread.cpp" />
+    <ClCompile Include="..\src\utility.cpp" />
     <ClCompile Include="..\src\win32service.cpp" />
     <ClCompile Include="..\thirdparty\benhoyt\inih\cpp\INIReader.cpp" />
     <ClCompile Include="..\thirdparty\benhoyt\inih\ini.c" />
@@ -102,9 +105,12 @@
     <ClInclude Include="..\src\kernel.hpp" />
     <ClInclude Include="..\src\metric.hpp" />
     <ClInclude Include="..\src\network.hpp" />
+    <ClInclude Include="..\src\query.hpp" />
+    <ClInclude Include="..\src\resultset.hpp" />
     <ClInclude Include="..\src\stats.hpp" />
     <ClInclude Include="..\src\thread.hpp" />
     <ClInclude Include="..\src\timer.hpp" />
+    <ClInclude Include="..\src\utility.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -7,7 +7,9 @@
 
 #include "metric.hpp"
 #include "network.hpp"
+#include "query.hpp"
 #include "thread.hpp"
+#include "utility.hpp"
 
 #include "civetweb.h"
 #include "spdlog/spdlog.h"
@@ -382,6 +384,7 @@ public:
 		if (m_Ctx == nullptr)
 			return false;
 
+		mg_set_request_handler(m_Ctx, "/api/aggregators", mg_aggregators_handler, this);
 		mg_set_request_handler(m_Ctx, "/api/put", mg_put_handler, this);
 		mg_set_request_handler(m_Ctx, "/api/query", mg_query_handler, this);
 		mg_set_request_handler(m_Ctx, "/api/stats", mg_stats_handler, this);
@@ -402,6 +405,15 @@ public:
 		}
 
 		spdlog::info("HTTP interface stopped");
+	}
+
+	static int mg_aggregators_handler(struct mg_connection *conn, void *cbdata)
+	{
+		HttpProcessor *http = static_cast<HttpProcessor*>(cbdata);
+		if (http == nullptr)
+			return mg_write_500(conn);
+
+		return http->ApiAggregatorsHandler(conn);	// success
 	}
 
 	static int mg_put_handler(struct mg_connection *conn, void *cbdata)
@@ -432,6 +444,32 @@ public:
 	}
 
 public:
+	int32_t ApiAggregatorsHandler(struct mg_connection *conn)
+	{
+		const struct mg_request_info *request = mg_get_request_info(conn);
+		if (strcmp(request->request_method, "GET") != 0 &&
+			strcmp(request->request_method, "POST") != 0)
+		{
+			mg_printf(conn,
+				"HTTP/1.1 405 Method Not Allowed\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n");
+			mg_printf(conn, "Error 405: %s requests not allowed for this endpoint.",
+				request->request_method);
+
+			return 405;	// this verb is not allowed
+		}
+
+		mg_printf(conn,
+			"HTTP/1.1 200 OK\r\nContent-Type: text/text\r\nConnection: close\r\n\r\n");
+		mg_printf(conn, "[\r\n");
+		mg_printf(conn, "\t\"avg\",\r\n");
+		mg_printf(conn, "\t\"min\",\r\n");
+		mg_printf(conn, "\t\"max\",\r\n");
+		mg_printf(conn, "\t\"sum\"\r\n");
+		mg_printf(conn, "]\r\n");
+
+		return 200;
+	}
+
 	int32_t ApiPutHandler(struct mg_connection *conn)
 	{
 		const struct mg_request_info *request = mg_get_request_info(conn);
@@ -510,6 +548,81 @@ public:
 			return 405;	// this verb is not allowed
 		}
 	
+		mg_printf(conn,
+			"HTTP/1.1 200 OK\r\nContent-Type: text/text\r\nConnection: close\r\n\r\n");
+
+		// Step 1: break up the query string into parts
+		std::string query(request->query_string);
+		std::vector<std::string> parts;
+
+		std::string::size_type start = 0;
+		std::string::size_type pos = query.find('&', start);
+		while (pos != std::string::npos)
+		{
+			std::string part = query.substr(start, pos - start);
+			parts.push_back(part);
+
+			start = pos + 1;
+			pos = query.find('&', start);
+		}
+
+		if (start < query.length())
+		{
+			std::string part = query.substr(start);
+			parts.push_back(part);
+		}
+
+		uint64_t curTime = time(nullptr);
+		uint64_t startTime = 0;
+		uint64_t endTime = curTime;	// by default, the end time is now
+		std::vector<ResultSet*> subqueries;
+
+		// Step 2: Identify the parts and process them
+		for (std::vector<std::string>::iterator part = parts.begin();
+			part != parts.end(); ++part)
+		{
+			if ((*part).find("start=") == 0)
+			{
+				startTime = curTime - ParseTime((*part).substr(6));
+			}
+			else if ((*part).find("end=") == 0)
+			{
+				endTime = curTime - ParseTime((*part).substr(4));
+			}
+			else if ((*part).find("m=") == 0)
+			{
+				Query q((*part).substr(2));
+
+				ResultSet *rs = m_DataStore->PrepareQuery(q);
+				if (rs)
+					subqueries.push_back(rs);
+			}
+		}
+
+		// Step 4: Get the result sets
+		for (std::vector<ResultSet*>::iterator resultset = subqueries.begin();
+			resultset != subqueries.end(); ++resultset)
+		{
+			std::vector<ResultSet::dps> results;
+			(*resultset)->Execute(startTime, endTime, results);
+
+			// Step 5: downsample the data
+			// @TODO
+
+			// Step 6: serialize each result set
+			// @TODO
+
+			// Step 7: write the data to the client
+			// @TODO
+			for (std::vector<ResultSet::dps>::iterator result = results.begin();
+				result != results.end(); ++result)
+			{
+				mg_printf(conn, "%ull: %g\r\n", (*result).timestamp, (*result).value);
+			}
+
+			delete (*resultset);
+		}
+
 		return 200;
 	}
 
@@ -532,9 +645,9 @@ public:
 		Statistics::Stats stats;
 		m_Stats->GetStats(stats);
 
-		mg_printf(conn, "Puts/second: %f\r\n", stats.putsPerSecond);
-		mg_printf(conn, "Writes/second: %f\r\n", stats.writesPerSecond);
-		mg_printf(conn, "Queue backlog: %d\r\n", stats.queueBacklog);
+		mg_printf(conn, "Puts/second: %.2f\r\n", stats.putsPerSecond);
+		mg_printf(conn, "Writes/second: %.2f\r\n", stats.writesPerSecond);
+		mg_printf(conn, "Queue backlog: %.2f\r\n", stats.queueBacklog);
 
 		return 200;
 	}

@@ -60,7 +60,7 @@ void Statistics::AddWriteCount(std::size_t count)
 
 void Statistics::SetQueueBacklog(std::size_t count)
 {
-	m_QueueBacklog = count;
+	m_QueueBacklog.store(count);
 }
 
 void Statistics::Start(void)

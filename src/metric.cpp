@@ -20,7 +20,7 @@ Metric::Metric(const std::string &line)
 {
 	// parse the line
 	std::string::size_type start = 0;
-	std::string::size_type pos = line.find(' ');
+	std::string::size_type pos = line.find(' ', start);
 	if (pos != std::string::npos)
 		m_Name = line.substr(start, pos);
 
@@ -41,7 +41,7 @@ Metric::Metric(const std::string &line)
 	}
 
 	start = pos + 1;
-	pos = line.find(' ', pos + 1);
+	pos = line.find(' ', start);
 	if (pos != std::string::npos)
 	{
 		std::string _value = line.substr(start, pos - start);
