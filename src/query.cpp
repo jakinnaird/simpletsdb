@@ -40,7 +40,7 @@ Query::Query(const std::string &query)
 		std::string::size_type cb = elems[1].find('}', ob);
 		if (ob == std::string::npos || cb == std::string::npos)
 		{
-			spdlog::info("A filter is required. {0}", query.c_str());
+			spdlog::info("A filter is required. {0}", elems[1].c_str());
 			return;
 		}
 
@@ -120,7 +120,6 @@ Query::Query(const std::string &query)
 	}
 
 	m_Query.assign(sql.str());
-	spdlog::debug(m_Query.c_str());
 }
 
 Query::~Query(void)

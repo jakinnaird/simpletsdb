@@ -53,7 +53,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\thirdparty\tclap\include;..\thirdparty\benhoyt\inih;..\thirdparty\benhoyt\inih\cpp;..\thirdparty\gabime\spdlog\include;..\thirdparty\giovannidicanio;..\thirdparty\civetweb\civetweb;..\thirdparty\sqlite;..\thirdparty\moodycamel;..\thirdparty\six-ddc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\thirdparty\tclap\include;..\thirdparty\benhoyt\inih;..\thirdparty\benhoyt\inih\cpp;..\thirdparty\gabime\spdlog\include;..\thirdparty\giovannidicanio;..\thirdparty\civetweb\civetweb;..\thirdparty\sqlite;..\thirdparty\moodycamel;..\thirdparty\six-ddc;..\thirdparty\nlohmann;</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <PreprocessorDefinitions>_UNICODE;UNICODE;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -80,6 +80,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\datastore.cpp" />
+    <ClCompile Include="..\src\downsampler.cpp" />
     <ClCompile Include="..\src\kernel.cpp" />
     <ClCompile Include="..\src\metric.cpp" />
     <ClCompile Include="..\src\network.cpp" />
@@ -102,6 +103,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\datastore.hpp" />
+    <ClInclude Include="..\src\downsampler.hpp" />
     <ClInclude Include="..\src\kernel.hpp" />
     <ClInclude Include="..\src\metric.hpp" />
     <ClInclude Include="..\src\network.hpp" />

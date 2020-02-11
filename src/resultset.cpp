@@ -10,8 +10,10 @@
 
 #include <ctime>
 
-ResultSet::ResultSet(sqlite3_stmt *query)
-	: m_Query(query)
+ResultSet::ResultSet(sqlite3_stmt *query,
+	const std::string &metric,
+	const std::string &downsampler)
+	: m_Query(query), m_Metric(metric), m_Downsampler(downsampler)
 {
 }
 

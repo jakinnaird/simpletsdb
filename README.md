@@ -135,9 +135,6 @@ The currently supported list can be found by querying the HTTP endpoint `/api/ag
 
 ### Downsampling
 
-`Currently not implemented`
-
-
 Metrics can be downsampled to different time intervals. For example, data with 1 second resolution can be returned with aggregation over a 5 minute period.
 
 Downsamplers require 2 components:
@@ -153,7 +150,12 @@ Examples:
 
 ## Query response
 
-`Currently, the result set is written as plain-text with one timestamp/value pair per line`
+Query responses are serialized into JSON arrays.
+
+Fields in response:
+
+| Field | Description | Required |
+| ----- | ----------- | -------- |
 
 # Performance
 Under Windows 10 Pro with an i5 processor, 8GB of RAM, and an SSD drive, metric write throughput can handle 1500+ writes/second, while the put throughput easily exceeds 2000+ metrics/second.

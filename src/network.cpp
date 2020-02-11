@@ -5,6 +5,7 @@
  *
  */
 
+#include "downsampler.hpp"
 #include "metric.hpp"
 #include "network.hpp"
 #include "query.hpp"
@@ -12,6 +13,7 @@
 #include "utility.hpp"
 
 #include "civetweb.h"
+#include "json/json.hpp"
 #include "spdlog/spdlog.h"
 
 #include <map>
@@ -548,9 +550,6 @@ public:
 			return 405;	// this verb is not allowed
 		}
 	
-		mg_printf(conn,
-			"HTTP/1.1 200 OK\r\nContent-Type: text/text\r\nConnection: close\r\n\r\n");
-
 		// Step 1: break up the query string into parts
 		std::string query(request->query_string);
 		std::vector<std::string> parts;
@@ -599,29 +598,44 @@ public:
 			}
 		}
 
+		nlohmann::json response;
+
 		// Step 4: Get the result sets
 		for (std::vector<ResultSet*>::iterator resultset = subqueries.begin();
 			resultset != subqueries.end(); ++resultset)
 		{
 			std::vector<ResultSet::dps> results;
-			(*resultset)->Execute(startTime, endTime, results);
-
-			// Step 5: downsample the data
-			// @TODO
-
-			// Step 6: serialize each result set
-			// @TODO
-
-			// Step 7: write the data to the client
-			// @TODO
-			for (std::vector<ResultSet::dps>::iterator result = results.begin();
-				result != results.end(); ++result)
+			if ((*resultset)->Execute(startTime, endTime, results))
 			{
-				mg_printf(conn, "%ull: %g\r\n", (*result).timestamp, (*result).value);
+				nlohmann::json jr;
+
+				jr["metric"] = (*resultset)->GetMetric();
+
+				// Step 5: downsample the data
+				std::vector<ResultSet::dps> output;
+				Downsampler ds((*resultset)->GetDownsampler());
+				if (ds.Decimate(results, output) > 0)
+				{
+					// Step 6: serialize each result set
+					for (std::vector<ResultSet::dps>::iterator dps = output.begin();
+						dps != output.end(); ++dps)
+					{
+						std::ostringstream oss;
+						oss << dps->timestamp;
+						jr["dps"][oss.str()] = dps->value;
+					}
+				}
+
+				response.push_back(jr);
 			}
 
 			delete (*resultset);
 		}
+
+		// Step 7: write the data to the client
+		mg_printf(conn,
+			"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n");
+		mg_printf(conn, response.dump(1).c_str());
 
 		return 200;
 	}

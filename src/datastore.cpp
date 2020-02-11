@@ -254,7 +254,8 @@ ResultSet* Datastore::PrepareQuery(const Query &query)
 		return nullptr;
 	}
 
-	ResultSet *rs = new ResultSet(stmt);
+	ResultSet *rs = new ResultSet(stmt, query.GetMetric(),
+		query.GetDownsampler());
 	if (rs == nullptr)
 		sqlite3_finalize(stmt);
 
