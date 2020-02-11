@@ -156,6 +156,41 @@ Fields in response:
 
 | Field | Description | Required |
 | ----- | ----------- | -------- |
+| metric | The name of the metric | True |
+| dps | An array of downsampled values | True |
+
+Example response to query: 
+
+`start=5m-ago&m=avg:tsdb.internal.writespersecond{host=*}:30s-avg`
+
+```
+[
+ {
+  "metric": "tsdb.internal.writespersecond",
+  "dps": {
+   "1581460750": 2.8601475874582927,
+   "1581460780": 2.955650052853993,
+   "1581460810": 2.9584742228190106,
+   "1581460840": 2.962144208805902,
+   "1581460870": 2.9551288366317747,
+   "1581460900": 2.9659485658009848,
+   "1581460930": 2.964291206427983,
+   "1581460960": 2.964120936393738,
+   "1581460990": 2.956375080963661,
+   "1581461020": 2.9608364747120786
+  }
+ }
+]
+```
+
+# Internal metrics
+The following metrics are collected by the SimpleTSDB system:
+
+| Metric | Description | Tags |
+| ------ | ----------- | ---- |
+| tsdb.internal.putspersecond | The put rate for both telnet and HTTP interfaces | host=\<host name\> |
+| tsdb.internal.writespersecond | The database commit rate | host=\<host name\> |
+| tsdb.internal.queuebacklog | The number of datapoints enqueued and waiting to be committed to disk | host=\<host name\> |
 
 # Performance
 Under Windows 10 Pro with an i5 processor, 8GB of RAM, and an SSD drive, metric write throughput can handle 1500+ writes/second, while the put throughput easily exceeds 2000+ metrics/second.
